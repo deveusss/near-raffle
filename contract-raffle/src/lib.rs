@@ -5,7 +5,6 @@ use crate::raffleticket::RaffleTicket;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LazyOption;
 use near_sdk::collections::LookupSet;
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
@@ -14,7 +13,6 @@ use near_sdk::Gas;
 use near_sdk::PromiseOrValue;
 use near_sdk::{env, log, near_bindgen, AccountId, Balance, BorshStorageKey, PanicOnDefault};
 use rand::distributions::{Distribution, Uniform};
-use rand::Rng;
 use std::convert::{AsRef, From};
 const BASE_GAS: u64 = 5_000_000_000_000;
 const PROMISE_CALL: u64 = 5_000_000_000_000;
@@ -73,7 +71,14 @@ impl FungibleTokenReceiver for RaffleContract {
         );
         match RaffleInstruction::from(msg) {
             RaffleInstruction::BuyPrize => {
-                PromiseOrValue::Value(U128::from(self.ticket.buy(amount.0 as u64)))
+                let result=self.ticket.buy(amount.0 as u64);
+                match result {
+                    Ok(s)=>PromiseOrValue::Value(U128::from(s)),
+                    Err(e)=>{
+                        log!(e);
+                        PromiseOrValue::Value(amount)
+                    }
+                }
             }
             _ => {
                 log!("Invalid instruction for raffle call");
