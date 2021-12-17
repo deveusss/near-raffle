@@ -14,11 +14,11 @@ pub struct RaffleTicket {
     winning_tickets: LookupSet<Ticket>,
     available_tickets: UnorderedSet<Ticket>,
     sold_tickets: UnorderedMap<AccountId, TicketNumber>,
-    tokens_per_ticket: i32,
+    tokens_per_ticket: u64,
 }
 
 impl RaffleTicket {
-    pub fn new(tokens_per_ticket: i32, number_of_predefined: i16) -> Self {
+    pub fn new(tokens_per_ticket: u64, number_of_predefined: i16) -> Self {
         let mut raffle = RaffleTicket {
             available_tickets: UnorderedSet::new(StorageKey::Available),
             winning_tickets: LookupSet::new(StorageKey::Winning),
@@ -55,5 +55,15 @@ impl RaffleTicket {
         let mut rng = rand::thread_rng();
         let numbers: Vec<_> = step.sample_iter(&mut rng).take(5).collect();
         return numbers;
+    }
+    pub fn buy(&mut self, prize_tokens: u64) -> u128 {
+        assert!(
+            prize_tokens >= self.tokens_per_ticket,
+            "Invalid prize amount"
+        );
+        if self.available_tickets.len() < self.tokens_per_ticket {
+            log!("No more tickets available");
+        }
+0
     }
 }

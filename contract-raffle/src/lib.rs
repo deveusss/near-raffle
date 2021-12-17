@@ -1,21 +1,21 @@
-mod raffleticket;
 mod internal;
+mod raffleticket;
 
+use crate::raffleticket::RaffleTicket;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
-use near_sdk::Gas;
-use near_sdk::PromiseOrValue;
-use crate::raffleticket::{RaffleTicket};
-use near_sdk::json_types::{ValidAccountId, U128};
-use near_sdk::{env,log, near_bindgen, AccountId, Balance, BorshStorageKey, PanicOnDefault};
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
 use near_sdk::collections::LookupSet;
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
+use near_sdk::json_types::{ValidAccountId, U128};
+use near_sdk::Gas;
+use near_sdk::PromiseOrValue;
+use near_sdk::{env, log, near_bindgen, AccountId, Balance, BorshStorageKey, PanicOnDefault};
 use rand::distributions::{Distribution, Uniform};
 use rand::Rng;
-use std::convert::{AsRef};
+use std::convert::{AsRef, From};
 const BASE_GAS: u64 = 5_000_000_000_000;
 const PROMISE_CALL: u64 = 5_000_000_000_000;
 const GAS_FOR_FT_ON_TRANSFER: Gas = BASE_GAS + PROMISE_CALL;
@@ -29,26 +29,24 @@ enum StorageKey {
     Sold,
 }
 
-enum RaffleFunction{
+enum RaffleInstruction {
+    Unknown,
     BuyPrize,
 }
 
-impl From<String> for RaffleFunction {
+impl From<String> for RaffleInstruction {
     fn from(item: String) -> Self {
         match &item[..] {
-           "buy_prize" => RaffleFunction::BuyPrize,
-           _ => panic!("Invalid function")
-
-        }        
+            "buy_prize" => RaffleInstruction::BuyPrize,
+            _ => RaffleInstruction::Unknown,
+        }
     }
 }
-
-
 
 #[near_bindgen]
 pub struct RaffleContract {
     ticket: RaffleTicket,
-    fungible_token_account_id:AccountId,
+    fungible_token_account_id: AccountId,
 }
 
 #[near_bindgen]
@@ -67,13 +65,19 @@ impl FungibleTokenReceiver for RaffleContract {
             env::predecessor_account_id() == self.fungible_token_account_id,
             "Only supports the one fungible token contract"
         );
-        log!("in {} tokens from @{} ft_on_transfer, msg = {}", amount.0, sender_id.as_ref(), msg);
-        match msg.as_str() {
-            "take-my-money" => PromiseOrValue::Value(U128::from(0)),
+        log!(
+            "in {} tokens from @{} ft_on_transfer, msg = {}",
+            amount.0,
+            sender_id.as_ref(),
+            msg
+        );
+        match RaffleInstruction::from(msg) {
+            RaffleInstruction::BuyPrize => {
+                PromiseOrValue::Value(U128::from(self.ticket.buy(amount.0 as u64)))
+            }
             _ => {
-                let prepaid_gas = env::prepaid_gas();
-                let account_id = env::current_account_id();
-                PromiseOrValue::Value(U128::from(0))
+                log!("Invalid instruction for raffle call");
+                PromiseOrValue::Value(amount)
             }
         }
     }
@@ -82,12 +86,15 @@ impl FungibleTokenReceiver for RaffleContract {
 #[near_bindgen]
 impl RaffleContract {
     #[init]
-    pub fn new(fungible_token_account_id: AccountId, tokens_per_ticket: i32, number_of_predefined: i16) -> Self {
+    pub fn new(
+        fungible_token_account_id: AccountId,
+        tokens_per_ticket: u64,
+        number_of_predefined: i16,
+    ) -> Self {
         assert_initialized();
         Self {
             ticket: RaffleTicket::new(tokens_per_ticket, number_of_predefined),
-            fungible_token_account_id
+            fungible_token_account_id,
         }
     }
 }
-
