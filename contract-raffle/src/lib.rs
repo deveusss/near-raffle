@@ -44,6 +44,8 @@ impl From<String> for RaffleInstruction {
 }
 
 #[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+
 pub struct RaffleContract {
     ticket: RaffleTicket,
     fungible_token_account_id: AccountId,
