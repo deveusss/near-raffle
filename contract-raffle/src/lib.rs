@@ -8,12 +8,14 @@ use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupSet;
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
+use near_sdk::collections::LookupMap;
+
 use near_sdk::json_types::{ValidAccountId, U128};
 use near_sdk::Gas;
 use near_sdk::PromiseOrValue;
-use near_sdk::{env, log, near_bindgen, AccountId, Balance, BorshStorageKey, PanicOnDefault};
+use near_sdk::{env, log, near_bindgen, AccountId,Balance, BorshStorageKey, PanicOnDefault};
 use rand::distributions::{Distribution, Uniform};
-use std::convert::{AsRef, From};
+use std::convert::{AsRef, From,TryFrom};
 const BASE_GAS: u64 = 5_000_000_000_000;
 const PROMISE_CALL: u64 = 5_000_000_000_000;
 const GAS_FOR_FT_ON_TRANSFER: Gas = BASE_GAS + PROMISE_CALL;
@@ -71,9 +73,9 @@ impl FungibleTokenReceiver for RaffleContract {
         );
         match RaffleInstruction::from(msg) {
             RaffleInstruction::BuyPrize => {
-                let result=self.ticket.buy(amount.0 as u64);
+                let result=self.ticket.buy_prize(sender_id.into(),amount.into());
                 match result {
-                    Ok(s)=>PromiseOrValue::Value(U128::from(s)),
+                    Ok(s)=>PromiseOrValue::Value(s.into()),
                     Err(e)=>{
                         log!(e);
                         PromiseOrValue::Value(amount)

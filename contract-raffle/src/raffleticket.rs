@@ -1,6 +1,6 @@
 use crate::*;
 pub type TicketNumber = i64;
-pub type TicketId = i32;
+pub type TicketId = i64;
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Ticket {
@@ -11,19 +11,21 @@ pub struct Ticket {
 }
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct RaffleTicket {
-    winning_tickets: LookupSet<Ticket>,
-    available_tickets: UnorderedSet<Ticket>,
-    sold_tickets: UnorderedMap<AccountId, TicketNumber>,
+    winning_tickets: LookupMap<TicketId,Ticket>,
+    available_tickets: LookupMap<TicketId,Ticket>,
+    sold_tickets: UnorderedMap<AccountId, Ticket>,
     prizes_per_ticket: u64,
+    total_available:u64,
 }
 
 impl RaffleTicket {
     pub fn new(prizes_per_ticket: u64, number_of_predefined: i16) -> Self {
         let mut raffle = RaffleTicket {
-            available_tickets: UnorderedSet::new(StorageKey::Available),
-            winning_tickets: LookupSet::new(StorageKey::Winning),
+            available_tickets: LookupMap::new(StorageKey::Available),
+            winning_tickets: LookupMap::new(StorageKey::Winning),
             sold_tickets: UnorderedMap::new(StorageKey::Sold),
             prizes_per_ticket,
+            total_available:0
         };
         raffle.add_tickets(number_of_predefined, false);
         raffle.add_tickets_as_winning(1);
@@ -36,15 +38,16 @@ impl RaffleTicket {
     fn add_tickets(&mut self, number_of_predefined: i16, is_winning_ticket: bool) {
         for _ in 1..number_of_predefined {
             let ticket = self.new_ticket(false, None);
-            self.available_tickets.insert(&ticket);
+            self.available_tickets.insert(&ticket.id,&ticket);
+            self.total_available+=1;
             if is_winning_ticket {
-                self.winning_tickets.insert(&ticket);
+                self.winning_tickets.insert(&ticket.id,&ticket);
             }
         }
     }
     fn new_ticket(&mut self, is_winning_ticket: bool, owner_id: Option<AccountId>) -> Ticket {
         Ticket {
-            id: (self.available_tickets.len() as i32) + 1,
+            id: (self.total_available as i64) + 1,
             owner_id: owner_id,
             numbers: self.generate_ticket_numbers(),
             is_winning_ticket: is_winning_ticket,
@@ -56,13 +59,28 @@ impl RaffleTicket {
         let numbers: Vec<_> = step.sample_iter(&mut rng).take(5).collect();
         return numbers;
     }
-    pub fn buy(&mut self, prize_tokens: u64) -> Result<u128,&str> {
-        if prize_tokens >= self.prizes_per_ticket{
+    pub fn buy_prize(&mut self,buyer_id:AccountId, prize_tokens: Balance) -> Result<u128,&str> {
+        if prize_tokens >= self.prizes_per_ticket.into(){
             return Err("Invalid prize amount");
         }
-        if self.available_tickets.len() < self.prizes_per_ticket {
-           return Err("Invalid prize amount");
+        if self.total_available < self.prizes_per_ticket {
+           return Err("No prize tickets available");
         }
-        Ok(0)
+        let mut refund: u128=prize_tokens%u128::from(self.prizes_per_ticket);
+        let buy_count=prize_tokens/prize_tokens;
+        for t in 1..buy_count{
+            if self.total_available<1{
+                let left:u128=(buy_count-t)*u128::from(self.prizes_per_ticket);
+                refund=refund+left;
+                break
+            }
+            else{
+                let key=&(i64::try_from(self.total_available-1).unwrap());
+                let ticket=self.available_tickets.get(key).expect("Ticket not found");
+                self.sold_tickets.insert(&buyer_id, &ticket);
+                self.available_tickets.remove(key);
+            }
+        }
+        Ok(refund)
     }
 }
