@@ -95,7 +95,7 @@ impl RaffleContract {
     #[init]
     pub fn new(
         fungible_token_account_id: AccountId,
-        tokens_per_ticket: u64,
+        tokens_per_ticket: Balance,
         number_of_predefined: i16,
     ) -> Self {
         assert_initialized();

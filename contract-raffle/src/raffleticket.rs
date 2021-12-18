@@ -1,6 +1,6 @@
 use crate::*;
-pub type TicketNumber = i64;
-pub type TicketId = i64;
+pub type TicketNumber = u128;
+pub type TicketId = u128;
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Ticket {
@@ -14,12 +14,12 @@ pub struct RaffleTicket {
     winning_tickets: LookupMap<TicketId,Ticket>,
     available_tickets: LookupMap<TicketId,Ticket>,
     sold_tickets: UnorderedMap<AccountId, Ticket>,
-    prizes_per_ticket: u64,
-    total_available:u64,
+    prizes_per_ticket: Balance,
+    total_available:u128,
 }
 
 impl RaffleTicket {
-    pub fn new(prizes_per_ticket: u64, number_of_predefined: i16) -> Self {
+    pub fn new(prizes_per_ticket: Balance, number_of_predefined: i16) -> Self {
         let mut raffle = RaffleTicket {
             available_tickets: LookupMap::new(StorageKey::Available),
             winning_tickets: LookupMap::new(StorageKey::Winning),
@@ -47,38 +47,38 @@ impl RaffleTicket {
     }
     fn new_ticket(&mut self, is_winning_ticket: bool, owner_id: Option<AccountId>) -> Ticket {
         Ticket {
-            id: (self.total_available as i64) + 1,
+            id: self.total_available + 1,
             owner_id: owner_id,
             numbers: self.generate_ticket_numbers(),
             is_winning_ticket: is_winning_ticket,
         }
     }
-    fn generate_ticket_numbers(&self) -> Vec<i64> {
+    fn generate_ticket_numbers(&self) -> Vec<TicketNumber> {
         let step = Uniform::new(100, 1000);
         let mut rng = rand::thread_rng();
         let numbers: Vec<_> = step.sample_iter(&mut rng).take(5).collect();
         return numbers;
     }
-    pub fn buy_prize(&mut self,buyer_id:AccountId, prize_tokens: Balance) -> Result<u128,&str> {
+    pub fn buy_prize(&mut self,buyer_id:AccountId, prize_tokens: Balance) -> Result<Balance,&str> {
         if prize_tokens >= self.prizes_per_ticket.into(){
             return Err("Invalid prize amount");
         }
         if self.total_available < self.prizes_per_ticket {
            return Err("No prize tickets available");
         }
-        let mut refund: u128=prize_tokens%u128::from(self.prizes_per_ticket);
-        let buy_count=prize_tokens/prize_tokens;
+        let mut refund=prize_tokens%self.prizes_per_ticket;
+        let buy_count=prize_tokens/self.prizes_per_ticket;
         for t in 1..buy_count{
             if self.total_available<1{
-                let left:u128=(buy_count-t)*u128::from(self.prizes_per_ticket);
+                let left=(buy_count-t)*self.prizes_per_ticket;
                 refund=refund+left;
                 break
             }
             else{
-                let key=&(i64::try_from(self.total_available-1).unwrap());
-                let ticket=self.available_tickets.get(key).expect("Ticket not found");
+                let key=self.total_available-1;
+                let ticket=self.available_tickets.get(&key).expect("Ticket not found");
                 self.sold_tickets.insert(&buyer_id, &ticket);
-                self.available_tickets.remove(key);
+                self.available_tickets.remove(&key);
             }
         }
         Ok(refund)
