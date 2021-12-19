@@ -14,7 +14,6 @@ use near_sdk::json_types::{ValidAccountId, U128};
 use near_sdk::Gas;
 use near_sdk::PromiseOrValue;
 use near_sdk::{env, log, near_bindgen, AccountId,Balance, BorshStorageKey, PanicOnDefault};
-use rand::distributions::{Distribution, Uniform};
 use std::convert::{AsRef, From,TryFrom};
 const BASE_GAS: u64 = 5_000_000_000_000;
 const PROMISE_CALL: u64 = 5_000_000_000_000;

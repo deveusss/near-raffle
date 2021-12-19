@@ -1,5 +1,5 @@
 use crate::*;
-pub type TicketNumber = u128;
+pub type TicketNumber = i32;
 pub type TicketId = u128;
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -54,9 +54,7 @@ impl RaffleTicket {
         }
     }
     fn generate_ticket_numbers(&self) -> Vec<TicketNumber> {
-        let step = Uniform::new(100, 1000);
-        let mut rng = rand::thread_rng();
-        let numbers: Vec<_> = step.sample_iter(&mut rng).take(5).collect();
+    let numbers: Vec<_> = (0..5).map(|_| rand_range(100,1000)).collect();
         return numbers;
     }
     pub fn buy_prize(&mut self,buyer_id:AccountId, prize_tokens: Balance) -> Result<Balance,&str> {
