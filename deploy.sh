@@ -25,7 +25,11 @@ near view $CONTRACT_NAME ft_balance_of '{"account_id": "'bob.$CONTRACT_NAME'"}'
 RAFFLE_CONTRACT_NAME=raffle.$CONTRACT_NAME
 echo "Creating '$RAFFLE_CONTRACT_NAME' account"
 
-near create-account $RAFFLE_CONTRACT_NAME  --masterAccount $CONTRACT_NAME --initialBalance "1"
+near create-account $RAFFLE_CONTRACT_NAME  --masterAccount $CONTRACT_NAME --initialBalance 50
+near call $CONTRACT_NAME storage_deposit '' --accountId $RAFFLE_CONTRACT_NAME --amount 0.00125
 
 echo "Deploying raffle contract '$RAFFLE_CONTRACT_NAME'"
-near deploy $RAFFLE_CONTRACT_NAME res/raffle.wasm new '{"fungible_token_account_id": "'$CONTRACT_NAME'", "tokens_per_ticket": "5", "number_of_predefined":3}' --accountId $CONTRACT_NAME
+near deploy $RAFFLE_CONTRACT_NAME res/raffle.wasm new '{"fungible_token_account_id": "'$CONTRACT_NAME'", "tokens_per_ticket": 5, "number_of_predefined":3}'
+
+echo "prize='$CONTRACT_NAME'"
+echo "raffle='$RAFFLE_CONTRACT_NAME'"

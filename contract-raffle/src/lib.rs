@@ -5,16 +5,16 @@ use crate::raffleticket::RaffleTicket;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::collections::LookupMap;
 use near_sdk::collections::LookupSet;
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
-use near_sdk::collections::LookupMap;
 
 use near_sdk::json_types::{ValidAccountId, U128};
 use near_sdk::Gas;
 use near_sdk::PromiseOrValue;
-use near_sdk::{env, log, near_bindgen, AccountId,Balance, BorshStorageKey, PanicOnDefault};
-use std::convert::{AsRef, From,TryFrom};
+use near_sdk::{env, log, near_bindgen, AccountId, Balance, BorshStorageKey, PanicOnDefault};
+use std::convert::{AsRef, From, TryFrom};
 const BASE_GAS: u64 = 5_000_000_000_000;
 const PROMISE_CALL: u64 = 5_000_000_000_000;
 const GAS_FOR_FT_ON_TRANSFER: Gas = BASE_GAS + PROMISE_CALL;
@@ -74,10 +74,10 @@ impl FungibleTokenReceiver for RaffleContract {
         );
         match RaffleInstruction::from(msg) {
             RaffleInstruction::BuyPrize => {
-                let result=self.ticket.buy_prize(sender_id.into(),amount.into());
+                let result = self.ticket.buy_prize(sender_id.into(), amount.into());
                 match result {
-                    Ok(s)=>PromiseOrValue::Value(s.into()),
-                    Err(e)=>{
+                    Ok(s) => PromiseOrValue::Value(s.into()),
+                    Err(e) => {
                         log!(e);
                         PromiseOrValue::Value(amount)
                     }
@@ -104,5 +104,14 @@ impl RaffleContract {
             ticket: RaffleTicket::new(tokens_per_ticket, number_of_predefined),
             fungible_token_account_id,
         }
+    }
+
+
+    pub fn total_tickets(&self)->u128{
+      self.ticket.total_available
+    }
+    
+    pub fn reset(&mut self) {
+        self.ticket.reset();
     }
 }
