@@ -107,8 +107,8 @@ impl RaffleContract {
     }
 
 
-    pub fn total_tickets(&self)->u128{
-      self.ticket.total_available
+    pub fn total_tickets(&self)->u64{
+      self.ticket.total_available()
     }
     
     pub fn reset(&mut self) {
