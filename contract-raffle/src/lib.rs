@@ -3,21 +3,13 @@ mod raffleticket;
 
 use crate::raffleticket::RaffleTicket;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
-use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LookupMap;
-use near_sdk::collections::LookupSet;
-use near_sdk::collections::UnorderedMap;
-use near_sdk::collections::UnorderedSet;
 
+use near_sdk::collections::UnorderedMap;
 use near_sdk::json_types::{ValidAccountId, U128};
-use near_sdk::Gas;
 use near_sdk::PromiseOrValue;
 use near_sdk::{env, log, near_bindgen, AccountId, Balance, BorshStorageKey, PanicOnDefault};
 use std::convert::{AsRef, From, TryFrom};
-const BASE_GAS: u64 = 5_000_000_000_000;
-const PROMISE_CALL: u64 = 5_000_000_000_000;
-const GAS_FOR_FT_ON_TRANSFER: Gas = BASE_GAS + PROMISE_CALL;
 
 use internal::*;
 
@@ -31,12 +23,16 @@ enum StorageKey {
 enum RaffleInstruction {
     Unknown,
     BuyPrize,
+    BuyTicket,
+
 }
 
 impl From<String> for RaffleInstruction {
     fn from(item: String) -> Self {
         match &item[..] {
+            "buy_ticket" => RaffleInstruction::BuyTicket,
             "buy_prize" => RaffleInstruction::BuyPrize,
+
             _ => RaffleInstruction::Unknown,
         }
     }
@@ -73,8 +69,8 @@ impl FungibleTokenReceiver for RaffleContract {
             msg
         );
         match RaffleInstruction::from(msg) {
-            RaffleInstruction::BuyPrize => {
-                let result = self.ticket.buy_prize(sender_id.into(), amount.into());
+            RaffleInstruction::BuyTicket => {
+                let result = self.ticket.buy_ticket(sender_id.into(), amount.into());
                 match result {
                     Ok(s) => PromiseOrValue::Value(s.into()),
                     Err(e) => {

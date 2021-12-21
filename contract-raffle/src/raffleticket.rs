@@ -68,7 +68,7 @@ impl RaffleTicket {
         return numbers;
     }
 
-    pub fn buy_prize(
+    pub fn buy_ticket(
         &mut self,
         buyer_id: AccountId,
         prize_tokens: Balance,
@@ -87,7 +87,7 @@ impl RaffleTicket {
                 refund = refund + left;
                 break;
             } else {
-                let key = self.total_available() - 1;
+                let key = self.available_tickets.keys().last().unwrap();
                 let ticket = self.available_tickets.get(&key).expect("Ticket not found");
                 self.sold_tickets.insert(&buyer_id, &ticket);
                 self.available_tickets.remove(&key);

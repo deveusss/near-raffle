@@ -31,5 +31,8 @@ near call $CONTRACT_NAME storage_deposit '' --accountId $RAFFLE_CONTRACT_NAME --
 echo "Deploying raffle contract '$RAFFLE_CONTRACT_NAME'"
 near deploy $RAFFLE_CONTRACT_NAME res/raffle.wasm new '{"fungible_token_account_id": "'$CONTRACT_NAME'", "tokens_per_ticket": 5, "number_of_predefined":3}'
 
+prize=$CONTRACT_NAME
+raffle=$RAFFLE_CONTRACT_NAME
+
 echo "prize='$CONTRACT_NAME'"
 echo "raffle='$RAFFLE_CONTRACT_NAME'"
